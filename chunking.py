@@ -29,8 +29,8 @@ from nltk.tokenize import sent_tokenize
 
 def chunk_text(
     text: str,
-    sentences_per_chunk: int = 6,
-    overlap: int = 2,
+    sentences_per_chunk: int = 3,
+    overlap: int = 1,
 ) -> list[str]:
     """
     Split text into overlapping sentence-based chunks.
@@ -53,20 +53,22 @@ def chunk_text(
         return [" ".join(sentences)]
 
     chunks = []
-    step = sentences_per_chunk - overlap  # how far the window advances
+    step = sentences_per_chunk - overlap
 
     for start in range(0, len(sentences), step):
         end = start + sentences_per_chunk
         chunk_sentences = sentences[start:end]
 
-        # Merge tiny trailing chunks (< 3 sentences) into the previous chunk
+        if not chunk_sentences:
+            break
+
+        # Merge tiny trailing chunks into previous
         if len(chunk_sentences) < 3 and chunks:
             chunks[-1] = chunks[-1] + " " + " ".join(chunk_sentences)
             break
 
         chunks.append(" ".join(chunk_sentences))
 
-        # Stop if we've reached the end
         if end >= len(sentences):
             break
 

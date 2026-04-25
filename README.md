@@ -106,7 +106,7 @@ SELECT filename, COUNT(*) AS chunk_count FROM document_chunks GROUP BY filename;
 |----------------|--------------|----------------------------------------------|
 | id             | INTEGER (PK) | Auto-incrementing primary key               |
 | chunk_text     | TEXT         | The text content of the chunk                |
-| embedding      | TEXT (JSON)  | 3072-dimensional embedding as JSON array     |
+| embedding      | FLOAT[]      | 3072-dimensional vector embedding             |
 | filename       | VARCHAR(255) | Source document name                         |
 | split_strategy | VARCHAR(50)  | Chunking method used                         |
 | created_at     | TIMESTAMP    | Row creation time (auto-filled)              |

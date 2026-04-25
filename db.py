@@ -1,11 +1,10 @@
 """
 Database module.
 Handles PostgreSQL connection and storage of document chunks.
-Embeddings are stored as JSON arrays (no pgvector extension required).
+Embeddings are stored as PostgreSQL FLOAT arrays (vector representation).
 """
 
-import json
-from sqlalchemy import create_engine, Column, Integer, Text, String, DateTime
+from sqlalchemy import create_engine, Column, Integer, Text, String, DateTime, ARRAY, Float
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
 
@@ -21,7 +20,7 @@ class DocumentChunk(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     chunk_text = Column(Text, nullable=False)
-    embedding = Column(Text, nullable=False)  # stored as JSON array
+    embedding = Column(ARRAY(Float), nullable=False)  # vector embedding
     filename = Column(String(255), nullable=False)
     split_strategy = Column(String(50), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -50,7 +49,7 @@ def store_chunks(
     """
     Store document chunks and their embeddings in the database.
 
-    Embeddings are serialized as JSON arrays in a TEXT column.
+    Embeddings are stored as FLOAT[] arrays (vector representation).
     All chunks are inserted in a single transaction for atomicity.
 
     Args:
@@ -72,7 +71,7 @@ def store_chunks(
         records = [
             DocumentChunk(
                 chunk_text=chunk,
-                embedding=json.dumps(embedding),
+                embedding=embedding,
                 filename=filename,
                 split_strategy=strategy,
             )
