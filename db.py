@@ -1,14 +1,14 @@
 """
 Database module.
-Handles PostgreSQL connection and storage of document chunks.
-Embeddings are stored as PostgreSQL FLOAT arrays (vector representation).
+Handles PostgreSQL connection and storage of document chunks with pgvector.
 """
 
-from sqlalchemy import create_engine, Column, Integer, Text, String, DateTime, ARRAY, Float
+from sqlalchemy import create_engine, Column, Integer, Text, String, DateTime, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 
-from config import POSTGRES_URL
+from config import POSTGRES_URL, EMBEDDING_DIMENSION
 
 Base = declarative_base()
 
@@ -20,9 +20,9 @@ class DocumentChunk(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     chunk_text = Column(Text, nullable=False)
-    embedding = Column(ARRAY(Float), nullable=False)  # vector embedding
-    filename = Column(String(255), nullable=False)
-    split_strategy = Column(String(50), nullable=False)
+    embedding = Column(Vector(EMBEDDING_DIMENSION), nullable=False)  # pgvector
+    filename = Column(Text, nullable=False)
+    split_strategy = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
 
 
@@ -33,9 +33,16 @@ _SessionLocal = sessionmaker(bind=_engine)
 
 def init_db() -> None:
     """
-    Initialize the database: create all tables if they don't exist.
+    Initialize the database:
+    1. Enable the pgvector extension
+    2. Create all tables if they don't exist
+
     Safe to call multiple times (idempotent).
     """
+    with _engine.connect() as conn:
+        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+        conn.commit()
+
     Base.metadata.create_all(_engine)
     print("Database initialized successfully.")
 
@@ -49,7 +56,7 @@ def store_chunks(
     """
     Store document chunks and their embeddings in the database.
 
-    Embeddings are stored as FLOAT[] arrays (vector representation).
+    Embeddings are stored as VECTOR(3072) using pgvector.
     All chunks are inserted in a single transaction for atomicity.
 
     Args:

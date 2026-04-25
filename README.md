@@ -1,6 +1,6 @@
 # Document Embedding Pipeline
 
-A Python module that extracts text from PDF/DOCX documents, splits it into semantic chunks, generates vector embeddings using Google Gemini, and stores everything in PostgreSQL for semantic search.
+A Python module that extracts text from PDF/DOCX documents, splits it into semantic chunks, generates vector embeddings using Google Gemini, and stores everything in PostgreSQL with pgvector for semantic search.
 
 ## Architecture
 
@@ -9,23 +9,24 @@ PDF/DOCX file
     → file_loader.py    (extract & clean text)
     → chunking.py       (split into sentence-based chunks)
     → embeddings.py     (generate vectors via Gemini API)
-    → db.py             (store in PostgreSQL)
+    → db.py             (store in PostgreSQL with pgvector)
 ```
 
 `index_documents.py` is the CLI entry point that orchestrates the pipeline.
 
 ## Chunking Strategy: Sentence-Based Splitting
 
-We use **sentence-based splitting** with a sliding window of 6 sentences and 2-sentence overlap.
+We use **sentence-based splitting** with a sliding window of 3 sentences and 1-sentence overlap.
 
 ### Why not fixed-size splitting?
-Fixed-size splitting cuts text at arbitrary character positions, often breaking mid-sentence or mid-word. This destroys semantic meaning and produces embeddings that represent incomplete thoughts — leading to poor search results.
+Fixed-size splitting cuts 
+text at arbitrary character positions, often breaking mid-sentence or mid-word. This destroys semantic meaning and produces embeddings that represent incomplete thoughts — leading to poor search results.
 
 ### Why not paragraph-based splitting?
 Paragraph sizes vary wildly — a legal paragraph can be 2000 words while a bullet point is 5 words. This inconsistency produces embeddings of uneven quality, making similarity comparisons unreliable.
 
 ### Why sentence-based?
-Sentence-based splitting preserves **complete semantic units**. Each chunk contains full thoughts, the chunk size is consistent and controllable via `sentences_per_chunk`, and the 2-sentence overlap ensures no context is lost at chunk boundaries. This produces high-quality, consistent embeddings ideal for semantic search.
+Sentence-based splitting preserves **complete semantic units**. Each chunk contains full thoughts, the chunk size is consistent and controllable via `sentences_per_chunk`, and the overlap ensures no context is lost at chunk boundaries. This produces high-quality, consistent embeddings ideal for semantic search.
 
 ## Project Structure
 
@@ -36,7 +37,7 @@ part2/
 ├── file_loader.py       # PDF/DOCX text extraction and cleaning
 ├── chunking.py          # Sentence-based text chunking with overlap
 ├── embeddings.py        # Gemini API embedding generation
-├── db.py                # PostgreSQL storage (SQLAlchemy ORM)
+├── db.py                # PostgreSQL + pgvector storage (SQLAlchemy ORM)
 ├── requirements.txt     # Python dependencies
 ├── .env.example         # Template for environment variables
 └── README.md
@@ -46,7 +47,7 @@ part2/
 
 ### 1. Prerequisites
 - Python 3.10+
-- PostgreSQL
+- PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension installed
 - A Google Gemini API key
 
 ### 2. Install dependencies
@@ -77,7 +78,7 @@ CREATE DATABASE embeddings_db;
 
 ## Usage
 
-### First run (initialize tables):
+### First run (initialize tables and pgvector extension):
 ```bash
 python index_documents.py --init-db document.pdf
 ```
@@ -102,11 +103,11 @@ SELECT filename, COUNT(*) AS chunk_count FROM document_chunks GROUP BY filename;
 
 ## Database Schema
 
-| Column         | Type         | Description                                  |
-|----------------|--------------|----------------------------------------------|
-| id             | INTEGER (PK) | Auto-incrementing primary key               |
-| chunk_text     | TEXT         | The text content of the chunk                |
-| embedding      | FLOAT[]      | 3072-dimensional vector embedding             |
-| filename       | VARCHAR(255) | Source document name                         |
-| split_strategy | VARCHAR(50)  | Chunking method used                         |
-| created_at     | TIMESTAMP    | Row creation time (auto-filled)              |
+| Column         | Type          | Description                     |
+|----------------|---------------|---------------------------------|
+| id             | SERIAL (PK)   | Auto-incrementing primary key  |
+| chunk_text     | TEXT          | The text content of the chunk   |
+| embedding      | VECTOR(3072)  | 3072-dimensional vector embedding (pgvector) |
+| filename       | TEXT          | Source document name            |
+| split_strategy | TEXT          | Chunking method used            |
+| created_at     | TIMESTAMP     | Row creation time (auto-filled) |

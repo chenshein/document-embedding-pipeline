@@ -62,8 +62,8 @@ def chunk_text(
         if not chunk_sentences:
             break
 
-        # Merge tiny trailing chunks into previous
-        if len(chunk_sentences) < 3 and chunks:
+        # Merge tiny trailing chunks (< half the target size) into previous
+        if len(chunk_sentences) < sentences_per_chunk // 2 and chunks:
             chunks[-1] = chunks[-1] + " " + " ".join(chunk_sentences)
             break
 

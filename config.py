@@ -25,5 +25,5 @@ EMBEDDING_DIMENSION = 3072  # gemini-embedding-001 output dimension
 
 # --- Chunking settings ---
 
-CHUNK_SENTENCES = 6   # number of sentences per chunk
-CHUNK_OVERLAP = 2     # overlapping sentences between consecutive chunks
+CHUNK_SENTENCES = 2   # number of sentences per chunk
+CHUNK_OVERLAP = 0     # no overlap for short documents
